@@ -109,8 +109,8 @@ func TestDevTokenAndBearerAccess(t *testing.T) {
 	t.Parallel()
 	mux := NewMux()
 
+	t.Setenv("AUTH_SECRET", "local-secret")
 	mintReq := httptest.NewRequest(http.MethodPost, "/v1/auth/dev-token?role=regularuser&tier=vip1&sub=user-9", nil)
-	mintReq.Header.Set("X-Auth-Secret", "local-secret")
 	mintRR := httptest.NewRecorder()
 	mux.ServeHTTP(mintRR, mintReq)
 	if mintRR.Code != http.StatusOK {
@@ -129,7 +129,6 @@ func TestDevTokenAndBearerAccess(t *testing.T) {
 	createBody := []byte(`{"id":"lic_tok_1","creator_id":"u_9","title":"Token Flow","currency":"ETH"}`)
 	createReq := httptest.NewRequest(http.MethodPost, "/v1/licenses", bytes.NewReader(createBody))
 	createReq.Header.Set("Authorization", "Bearer "+token)
-	createReq.Header.Set("X-Auth-Secret", "local-secret")
 	createRR := httptest.NewRecorder()
 	mux.ServeHTTP(createRR, createReq)
 	if createRR.Code != http.StatusCreated {
