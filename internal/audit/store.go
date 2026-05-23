@@ -20,7 +20,7 @@ type Query struct {
 	Offset   int
 }
 
-func (q Query) normalized() Query {
+func (q Query) Normalized() Query {
 	out := q
 	if out.Limit <= 0 || out.Limit > 500 {
 		out.Limit = 100
@@ -64,7 +64,7 @@ func (s *MemoryStore) List(ctx context.Context) ([]Event, error) {
 }
 
 func (s *MemoryStore) Query(_ context.Context, q Query) ([]Event, error) {
-	q = q.normalized()
+	q = q.Normalized()
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	filtered := s.filterLocked(q)
@@ -80,7 +80,7 @@ func (s *MemoryStore) Query(_ context.Context, q Query) ([]Event, error) {
 }
 
 func (s *MemoryStore) Count(_ context.Context, q Query) (int, error) {
-	q = q.normalized()
+	q = q.Normalized()
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return len(s.filterLocked(q)), nil
@@ -135,7 +135,7 @@ func (s *SQLStore) List(ctx context.Context) ([]Event, error) {
 }
 
 func (s *SQLStore) Query(ctx context.Context, q Query) ([]Event, error) {
-	q = q.normalized()
+	q = q.Normalized()
 	where, args := buildWhere(q)
 	args = append(args, q.Limit)
 	limitArg := "$" + strconv.Itoa(len(args))
@@ -175,7 +175,7 @@ func (s *SQLStore) Query(ctx context.Context, q Query) ([]Event, error) {
 }
 
 func (s *SQLStore) Count(ctx context.Context, q Query) (int, error) {
-	q = q.normalized()
+	q = q.Normalized()
 	where, args := buildWhere(q)
 	stmt := `SELECT COUNT(1) FROM audit_events WHERE ` + strings.Join(where, " AND ")
 	var n int

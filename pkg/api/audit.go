@@ -20,7 +20,7 @@ func (h LicenseHandler) ListAuditEvents(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	if h.Audit == nil {
-		writeJSON(w, http.StatusOK, map[string]any{"items": []any{}})
+		writeJSON(w, http.StatusOK, map[string]any{"items": []any{}, "total": 0, "limit": 100, "offset": 0})
 		return
 	}
 
@@ -29,12 +29,20 @@ func (h LicenseHandler) ListAuditEvents(w http.ResponseWriter, r *http.Request) 
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 		return
 	}
-	items, err := h.Audit.Query(r.Context(), q)
+	n := q
+	n = n.Normalized()
+
+	total, err := h.Audit.Count(r.Context(), n)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "audit count failed"})
+		return
+	}
+	items, err := h.Audit.Query(r.Context(), n)
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "audit list failed"})
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"items": items})
+	writeJSON(w, http.StatusOK, map[string]any{"items": items, "total": total, "limit": n.Limit, "offset": n.Offset})
 }
 
 func parseAuditQuery(r *http.Request) (audit.Query, error) {
