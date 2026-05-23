@@ -1,0 +1,14 @@
+{
+  "name": "marketplace-mcp",
+  "version": "0.1.0",
+  "tools": [
+    {
+      "name": "list_licenses",
+      "description": "List marketplace licenses"
+    },
+    {
+      "name": "create_license",
+      "description": "Create marketplace license"
+    }
+  ]
+}
