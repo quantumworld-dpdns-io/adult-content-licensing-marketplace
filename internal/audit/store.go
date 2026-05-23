@@ -5,14 +5,38 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
 )
 
+type Query struct {
+	Type     string
+	EntityID string
+	Since    *time.Time
+	Until    *time.Time
+	Limit    int
+	Offset   int
+}
+
+func (q Query) normalized() Query {
+	out := q
+	if out.Limit <= 0 || out.Limit > 500 {
+		out.Limit = 100
+	}
+	if out.Offset < 0 {
+		out.Offset = 0
+	}
+	out.Type = strings.TrimSpace(out.Type)
+	out.EntityID = strings.TrimSpace(out.EntityID)
+	return out
+}
+
 type Store interface {
 	Append(ctx context.Context, e Event) error
 	List(ctx context.Context) ([]Event, error)
+	Query(ctx context.Context, q Query) ([]Event, error)
 }
 
 type MemoryStore struct {
@@ -34,11 +58,39 @@ func (s *MemoryStore) Append(_ context.Context, e Event) error {
 	return nil
 }
 
-func (s *MemoryStore) List(_ context.Context) ([]Event, error) {
+func (s *MemoryStore) List(ctx context.Context) ([]Event, error) {
+	return s.Query(ctx, Query{})
+}
+
+func (s *MemoryStore) Query(_ context.Context, q Query) ([]Event, error) {
+	q = q.normalized()
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	out := make([]Event, len(s.events))
-	copy(out, s.events)
+	filtered := make([]Event, 0, len(s.events))
+	for i := len(s.events) - 1; i >= 0; i-- {
+		e := s.events[i]
+		if q.Type != "" && e.Type != q.Type {
+			continue
+		}
+		if q.EntityID != "" && e.EntityID != q.EntityID {
+			continue
+		}
+		if q.Since != nil && e.At.Before(*q.Since) {
+			continue
+		}
+		if q.Until != nil && e.At.After(*q.Until) {
+			continue
+		}
+		filtered = append(filtered, e)
+	}
+	if q.Offset >= len(filtered) {
+		return []Event{}, nil
+	}
+	end := q.Offset + q.Limit
+	if end > len(filtered) {
+		end = len(filtered)
+	}
+	out := append([]Event(nil), filtered[q.Offset:end]...)
 	return out, nil
 }
 
@@ -66,10 +118,42 @@ func (s *SQLStore) Append(ctx context.Context, e Event) error {
 }
 
 func (s *SQLStore) List(ctx context.Context) ([]Event, error) {
-	rows, err := s.db.QueryContext(ctx, `
+	return s.Query(ctx, Query{})
+}
+
+func (s *SQLStore) Query(ctx context.Context, q Query) ([]Event, error) {
+	q = q.normalized()
+	where := []string{"1=1"}
+	args := []any{}
+	if q.Type != "" {
+		args = append(args, q.Type)
+		where = append(where, "type = $"+strconv.Itoa(len(args)))
+	}
+	if q.EntityID != "" {
+		args = append(args, q.EntityID)
+		where = append(where, "entity_id = $"+strconv.Itoa(len(args)))
+	}
+	if q.Since != nil {
+		args = append(args, *q.Since)
+		where = append(where, "created_at >= $"+strconv.Itoa(len(args)))
+	}
+	if q.Until != nil {
+		args = append(args, *q.Until)
+		where = append(where, "created_at <= $"+strconv.Itoa(len(args)))
+	}
+	args = append(args, q.Limit)
+	limitArg := "$" + strconv.Itoa(len(args))
+	args = append(args, q.Offset)
+	offsetArg := "$" + strconv.Itoa(len(args))
+
+	stmt := `
 		SELECT type, actor_sub, actor_role, entity_id, COALESCE(meta_json, '{}'), created_at
-		FROM audit_events ORDER BY id DESC LIMIT 500
-	`)
+		FROM audit_events
+		WHERE ` + strings.Join(where, " AND ") + `
+		ORDER BY id DESC
+		LIMIT ` + limitArg + ` OFFSET ` + offsetArg
+
+	rows, err := s.db.QueryContext(ctx, stmt, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -104,6 +188,9 @@ CREATE TABLE IF NOT EXISTS audit_events (
   meta_json TEXT NOT NULL DEFAULT '{}',
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+CREATE INDEX IF NOT EXISTS idx_audit_events_type ON audit_events(type);
+CREATE INDEX IF NOT EXISTS idx_audit_events_entity_id ON audit_events(entity_id);
+CREATE INDEX IF NOT EXISTS idx_audit_events_created_at ON audit_events(created_at);
 `
 
 func NewStore(backend string, databaseURL string) (Store, error) {
