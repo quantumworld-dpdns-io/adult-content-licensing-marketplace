@@ -1,0 +1,11 @@
+[workspace]
+members = [
+  "crates/core",
+  "crates/pqcrypto",
+  "crates/zkp",
+  "crates/wasm-hasher",
+  "crates/matching",
+  "crates/spin-svc",
+  "crates/cli"
+]
+resolver = "2"
