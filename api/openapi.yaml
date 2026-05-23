@@ -64,9 +64,36 @@ paths:
     get:
       operationId: listAuditEvents
       security: [{ bearerAuth: [] }]
+      parameters:
+        - in: query
+          name: type
+          required: false
+          schema: { type: string }
+        - in: query
+          name: entity_id
+          required: false
+          schema: { type: string }
+        - in: query
+          name: since
+          required: false
+          schema: { type: string, format: date-time }
+        - in: query
+          name: until
+          required: false
+          schema: { type: string, format: date-time }
+        - in: query
+          name: limit
+          required: false
+          schema: { type: integer }
+        - in: query
+          name: offset
+          required: false
+          schema: { type: integer }
       responses:
         '200':
           description: Audit events
+        '400':
+          description: Invalid query parameter
   /v1/metrics/latency:
     get:
       operationId: getLatencyMetrics

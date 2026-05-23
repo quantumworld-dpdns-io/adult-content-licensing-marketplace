@@ -185,3 +185,37 @@ func TestMetricsEndpointAuditorAccess(t *testing.T) {
 		t.Fatalf("expected 200, got %d", rr.Code)
 	}
 }
+
+func TestAuditEventsEndpointWithFilters(t *testing.T) {
+	mux := NewMux(license.NewMemoryRepository(), audit.NewMemoryStore())
+
+	mk := func(id, cur string) {
+		body := []byte(`{"id":"` + id + `","creator_id":"u_x","title":"T","currency":"` + cur + `"}`)
+		req := httptest.NewRequest(http.MethodPost, "/v1/licenses", bytes.NewReader(body))
+		req.Header.Set("X-Role", "admin")
+		req.Header.Set("X-Sub", "admin-1")
+		rr := httptest.NewRecorder()
+		mux.ServeHTTP(rr, req)
+		if rr.Code != http.StatusCreated {
+			t.Fatalf("seed create failed: %d", rr.Code)
+		}
+	}
+	mk("lic_f1", "USDC")
+	mk("lic_f2", "ETH")
+
+	req := httptest.NewRequest(http.MethodGet, "/v1/audit/events?type=license.created&entity_id=lic_f2&limit=1&offset=0", nil)
+	req.Header.Set("X-Role", "auditor")
+	rr := httptest.NewRecorder()
+	mux.ServeHTTP(rr, req)
+	if rr.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", rr.Code)
+	}
+
+	var out map[string][]map[string]any
+	if err := json.Unmarshal(rr.Body.Bytes(), &out); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if len(out["items"]) != 1 {
+		t.Fatalf("expected 1 filtered item, got %d", len(out["items"]))
+	}
+}
