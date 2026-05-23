@@ -91,7 +91,7 @@ paths:
           schema: { type: integer }
       responses:
         '200':
-          description: Audit events
+          description: Audit events (total count + paged items)
         '400':
           description: Invalid query parameter
   /v1/metrics/latency:
