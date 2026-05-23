@@ -23,12 +23,23 @@ make test
 make run
 ```
 
+## Auth (Current)
+
+Protected endpoints accept:
+
+- `Authorization: Bearer <signed-token>`
+- Header fallback for local compatibility: `X-Role` and `X-Tier`
+
+Dev token issuance for local testing:
+
+- `POST /v1/auth/dev-token?role=regularuser&tier=vip1&sub=user-1`
+
 ## Current API
 
 - `GET /healthz`
 - `GET /readyz`
-- `GET /v1/licenses` (requires `X-Role`)
-- `POST /v1/licenses` (requires role/tier and crypto currency)
+- `GET /v1/licenses`
+- `POST /v1/licenses`
 - `GET /v1/policy/compliance` (admin/auditor)
 - `GET /v1/policy/threat-model` (admin/auditor)
 

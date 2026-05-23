@@ -1,9 +1,14 @@
 openapi: 3.1.0
 info:
   title: Adult Content Licensing Marketplace API
-  version: 0.2.0
+  version: 0.3.0
 servers:
   - url: http://localhost:8080
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
 paths:
   /healthz:
     get:
@@ -17,20 +22,29 @@ paths:
       responses:
         '200':
           description: Ready
+  /v1/auth/dev-token:
+    post:
+      operationId: issueDevToken
+      parameters:
+        - in: query
+          name: role
+          required: true
+          schema: { type: string }
+        - in: query
+          name: tier
+          required: false
+          schema: { type: string }
+        - in: query
+          name: sub
+          required: false
+          schema: { type: string }
+      responses:
+        '200':
+          description: Token issued
   /v1/licenses:
     get:
       operationId: listLicenses
-      parameters:
-        - in: header
-          name: X-Role
-          required: true
-          schema:
-            type: string
-        - in: header
-          name: X-Tier
-          required: false
-          schema:
-            type: string
+      security: [{ bearerAuth: [] }]
       responses:
         '200':
           description: List licenses
@@ -38,17 +52,7 @@ paths:
           description: Unauthorized
     post:
       operationId: createLicense
-      parameters:
-        - in: header
-          name: X-Role
-          required: true
-          schema:
-            type: string
-        - in: header
-          name: X-Tier
-          required: false
-          schema:
-            type: string
+      security: [{ bearerAuth: [] }]
       responses:
         '201':
           description: License created
@@ -59,12 +63,14 @@ paths:
   /v1/policy/compliance:
     get:
       operationId: getCompliancePolicy
+      security: [{ bearerAuth: [] }]
       responses:
         '200':
           description: Compliance policy
   /v1/policy/threat-model:
     get:
       operationId: getThreatModelPolicy
+      security: [{ bearerAuth: [] }]
       responses:
         '200':
           description: Threat model policy
