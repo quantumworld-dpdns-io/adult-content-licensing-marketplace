@@ -31,3 +31,9 @@ make run
 ```bash
 INTEGRATION_DB=1 DATABASE_URL='postgres://postgres:postgres@localhost:5432/marketplace?sslmode=disable' go test ./internal/license -run TestSQLRepositoryCreateListGet -v
 ```
+
+## Run audit store integration test
+
+```bash
+INTEGRATION_DB=1 DATABASE_URL='postgres://postgres:postgres@localhost:5432/marketplace?sslmode=disable' go test ./internal/audit -run TestSQLStoreAppendList -v
+```
