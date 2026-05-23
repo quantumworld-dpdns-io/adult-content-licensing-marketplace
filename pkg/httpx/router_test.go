@@ -136,3 +136,25 @@ func TestDevTokenAndBearerAccess(t *testing.T) {
 		t.Fatalf("expected created with token, got %d", createRR.Code)
 	}
 }
+
+func TestAuditEventsEndpoint(t *testing.T) {
+	mux := NewMux(license.NewMemoryRepository())
+
+	createBody := []byte(`{"id":"lic_aud_1","creator_id":"u_20","title":"Audit","currency":"USDC"}`)
+	createReq := httptest.NewRequest(http.MethodPost, "/v1/licenses", bytes.NewReader(createBody))
+	createReq.Header.Set("X-Role", "admin")
+	createReq.Header.Set("X-Sub", "admin-1")
+	createRR := httptest.NewRecorder()
+	mux.ServeHTTP(createRR, createReq)
+	if createRR.Code != http.StatusCreated {
+		t.Fatalf("expected created, got %d", createRR.Code)
+	}
+
+	auditReq := httptest.NewRequest(http.MethodGet, "/v1/audit/events", nil)
+	auditReq.Header.Set("X-Role", "auditor")
+	auditRR := httptest.NewRecorder()
+	mux.ServeHTTP(auditRR, auditReq)
+	if auditRR.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", auditRR.Code)
+	}
+}
