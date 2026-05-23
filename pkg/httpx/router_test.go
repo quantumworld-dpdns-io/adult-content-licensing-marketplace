@@ -215,8 +215,12 @@ func TestAuditEventsEndpointWithFilters(t *testing.T) {
 	if err := json.Unmarshal(rr.Body.Bytes(), &out); err != nil {
 		t.Fatalf("decode: %v", err)
 	}
-	if len(out["items"]) != 1 {
-		t.Fatalf("expected 1 filtered item, got %d", len(out["items"]))
+	items, ok := out["items"].([]any)
+	if !ok {
+		t.Fatalf("expected items array, got %T", out["items"])
+	}
+	if len(items) != 1 {
+		t.Fatalf("expected 1 filtered item, got %d", len(items))
 	}
 	if int(out["total"].(float64)) < 1 {
 		t.Fatalf("expected total >= 1, got %v", out["total"])
