@@ -37,6 +37,7 @@ type Store interface {
 	Append(ctx context.Context, e Event) error
 	List(ctx context.Context) ([]Event, error)
 	Query(ctx context.Context, q Query) ([]Event, error)
+	Count(ctx context.Context, q Query) (int, error)
 }
 
 type MemoryStore struct {
@@ -66,6 +67,26 @@ func (s *MemoryStore) Query(_ context.Context, q Query) ([]Event, error) {
 	q = q.normalized()
 	s.mu.RLock()
 	defer s.mu.RUnlock()
+	filtered := s.filterLocked(q)
+	if q.Offset >= len(filtered) {
+		return []Event{}, nil
+	}
+	end := q.Offset + q.Limit
+	if end > len(filtered) {
+		end = len(filtered)
+	}
+	out := append([]Event(nil), filtered[q.Offset:end]...)
+	return out, nil
+}
+
+func (s *MemoryStore) Count(_ context.Context, q Query) (int, error) {
+	q = q.normalized()
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return len(s.filterLocked(q)), nil
+}
+
+func (s *MemoryStore) filterLocked(q Query) []Event {
 	filtered := make([]Event, 0, len(s.events))
 	for i := len(s.events) - 1; i >= 0; i-- {
 		e := s.events[i]
@@ -83,15 +104,7 @@ func (s *MemoryStore) Query(_ context.Context, q Query) ([]Event, error) {
 		}
 		filtered = append(filtered, e)
 	}
-	if q.Offset >= len(filtered) {
-		return []Event{}, nil
-	}
-	end := q.Offset + q.Limit
-	if end > len(filtered) {
-		end = len(filtered)
-	}
-	out := append([]Event(nil), filtered[q.Offset:end]...)
-	return out, nil
+	return filtered
 }
 
 type SQLStore struct {
@@ -123,24 +136,7 @@ func (s *SQLStore) List(ctx context.Context) ([]Event, error) {
 
 func (s *SQLStore) Query(ctx context.Context, q Query) ([]Event, error) {
 	q = q.normalized()
-	where := []string{"1=1"}
-	args := []any{}
-	if q.Type != "" {
-		args = append(args, q.Type)
-		where = append(where, "type = $"+strconv.Itoa(len(args)))
-	}
-	if q.EntityID != "" {
-		args = append(args, q.EntityID)
-		where = append(where, "entity_id = $"+strconv.Itoa(len(args)))
-	}
-	if q.Since != nil {
-		args = append(args, *q.Since)
-		where = append(where, "created_at >= $"+strconv.Itoa(len(args)))
-	}
-	if q.Until != nil {
-		args = append(args, *q.Until)
-		where = append(where, "created_at <= $"+strconv.Itoa(len(args)))
-	}
+	where, args := buildWhere(q)
 	args = append(args, q.Limit)
 	limitArg := "$" + strconv.Itoa(len(args))
 	args = append(args, q.Offset)
@@ -176,6 +172,39 @@ func (s *SQLStore) Query(ctx context.Context, q Query) ([]Event, error) {
 		return nil, err
 	}
 	return out, nil
+}
+
+func (s *SQLStore) Count(ctx context.Context, q Query) (int, error) {
+	q = q.normalized()
+	where, args := buildWhere(q)
+	stmt := `SELECT COUNT(1) FROM audit_events WHERE ` + strings.Join(where, " AND ")
+	var n int
+	if err := s.db.QueryRowContext(ctx, stmt, args...).Scan(&n); err != nil {
+		return 0, err
+	}
+	return n, nil
+}
+
+func buildWhere(q Query) ([]string, []any) {
+	where := []string{"1=1"}
+	args := []any{}
+	if q.Type != "" {
+		args = append(args, q.Type)
+		where = append(where, "type = $"+strconv.Itoa(len(args)))
+	}
+	if q.EntityID != "" {
+		args = append(args, q.EntityID)
+		where = append(where, "entity_id = $"+strconv.Itoa(len(args)))
+	}
+	if q.Since != nil {
+		args = append(args, *q.Since)
+		where = append(where, "created_at >= $"+strconv.Itoa(len(args)))
+	}
+	if q.Until != nil {
+		args = append(args, *q.Until)
+		where = append(where, "created_at <= $"+strconv.Itoa(len(args)))
+	}
+	return where, args
 }
 
 const auditSchemaSQL = `
