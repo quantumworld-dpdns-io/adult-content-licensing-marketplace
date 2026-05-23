@@ -21,6 +21,7 @@ Assumed defaults are locked in `docs/spec/assumed-defaults-mvp.md` and treated a
 - [x] Durable audit store (memory/postgres) + protected audit endpoint with query filters/pagination
 - [x] Request ID middleware + structured access logging
 - [x] In-process latency metrics snapshot endpoint (`/v1/metrics/latency`)
+- [x] k6 load smoke scaffold for p95 baseline verification
 - [x] Multi-phase scaffolds for infra/contracts/rust/julia/quantum/federated/frontend/security/observability
 
 ## Next Build Depth

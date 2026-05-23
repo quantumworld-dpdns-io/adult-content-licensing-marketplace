@@ -56,3 +56,8 @@ OpenAPI: `api/openapi.yaml`
 ## License
 
 [MIT](LICENSE)
+
+## Performance Smoke
+
+- k6 script: `tests/load/k6_smoke.js`
+- runner: `scripts/load/run_k6_smoke.sh`
