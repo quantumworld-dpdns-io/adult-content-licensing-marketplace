@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/quantumworld-dpdns-io/adult-content-licensing-marketplace/internal/audit"
 	"github.com/quantumworld-dpdns-io/adult-content-licensing-marketplace/internal/auth"
 	"github.com/quantumworld-dpdns-io/adult-content-licensing-marketplace/internal/license"
 	"github.com/quantumworld-dpdns-io/adult-content-licensing-marketplace/internal/policy"
@@ -11,7 +12,8 @@ import (
 )
 
 type LicenseHandler struct {
-	Repo license.Repository
+	Repo  license.Repository
+	Audit *audit.Stream
 }
 
 func (h LicenseHandler) List(w http.ResponseWriter, r *http.Request) {
@@ -55,6 +57,18 @@ func (h LicenseHandler) Create(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "create failed"})
 		return
+	}
+	if h.Audit != nil {
+		h.Audit.Append(audit.Event{
+			Type:      "license.created",
+			ActorSub:  principal.Sub,
+			ActorRole: principal.Role,
+			EntityID:  created.ID,
+			Meta: map[string]any{
+				"currency": created.Currency,
+				"tier":     principal.Tier,
+			},
+		})
 	}
 	writeJSON(w, http.StatusCreated, created)
 }
