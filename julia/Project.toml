@@ -1,0 +1,8 @@
+name = "MarketplaceAnalytics"
+uuid = "2d5000b4-5e86-4fca-9c08-2b2f1454db91"
+authors = ["quantumworld-dpdns-io"]
+version = "0.1.0"
+
+[deps]
+DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
+DuckDB = "d1e1d1a2-12f2-4f0b-b9d0-5f8f6fca5b6c"
