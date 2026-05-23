@@ -1,6 +1,7 @@
 package license
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 )
@@ -14,7 +15,7 @@ func NewRepository(backend string, databaseURL string) (Repository, error) {
 		if !driverRegistered("postgres") {
 			return nil, fmt.Errorf("postgres driver not registered; add a postgres sql driver import before using postgres backend")
 		}
-		db, err := sql.Open("postgres", databaseURL)
+		db, err := OpenPostgresAndEnsureSchema(context.Background(), databaseURL)
 		if err != nil {
 			return nil, fmt.Errorf("open postgres: %w", err)
 		}

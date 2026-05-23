@@ -3,9 +3,9 @@ package license
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"errors"
 	"fmt"
+	"sort"
 	"strings"
 )
 
@@ -42,16 +42,36 @@ func NewSQLRepository(db *sql.DB) *SQLRepository {
 }
 
 func (r *SQLRepository) Create(ctx context.Context, l License) (License, error) {
-	territories, err := json.Marshal(l.TerritoriesISO2Codes)
+	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
-		return License{}, fmt.Errorf("marshal territories: %w", err)
+		return License{}, err
 	}
-	_, err = r.db.ExecContext(ctx, `
+	defer tx.Rollback()
+
+	_, err = tx.ExecContext(ctx, `
 		INSERT INTO licenses (
-			id, creator_id, title, description, ai_training_prohibited, base_price_cents, currency, territories_json
-		) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
-	`, l.ID, l.CreatorID, l.Title, l.Description, l.AITraingProhibited, l.BasePriceCents, l.Currency, string(territories))
+			id, creator_id, title, description, ai_training_prohibited, base_price_cents, currency
+		) VALUES ($1,$2,$3,$4,$5,$6,$7)
+	`, l.ID, l.CreatorID, l.Title, l.Description, l.AITraingProhibited, l.BasePriceCents, l.Currency)
 	if err != nil {
+		return License{}, err
+	}
+
+	for _, iso := range dedupeTerritories(l.TerritoriesISO2Codes) {
+		if strings.TrimSpace(iso) == "" {
+			continue
+		}
+		_, err = tx.ExecContext(ctx, `
+			INSERT INTO license_territories (license_id, iso_code)
+			VALUES ($1, $2)
+			ON CONFLICT (license_id, iso_code) DO NOTHING
+		`, l.ID, strings.ToUpper(iso))
+		if err != nil {
+			return License{}, err
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
 		return License{}, err
 	}
 	return l, nil
@@ -59,7 +79,7 @@ func (r *SQLRepository) Create(ctx context.Context, l License) (License, error) 
 
 func (r *SQLRepository) List(ctx context.Context) ([]License, error) {
 	rows, err := r.db.QueryContext(ctx, `
-		SELECT id, creator_id, title, description, ai_training_prohibited, base_price_cents, currency, COALESCE(territories_json, '[]')
+		SELECT id, creator_id, title, description, ai_training_prohibited, base_price_cents, currency
 		FROM licenses
 		ORDER BY created_at DESC
 	`)
@@ -71,13 +91,14 @@ func (r *SQLRepository) List(ctx context.Context) ([]License, error) {
 	out := []License{}
 	for rows.Next() {
 		var l License
-		var territoriesRaw string
-		if err := rows.Scan(&l.ID, &l.CreatorID, &l.Title, &l.Description, &l.AITraingProhibited, &l.BasePriceCents, &l.Currency, &territoriesRaw); err != nil {
+		if err := rows.Scan(&l.ID, &l.CreatorID, &l.Title, &l.Description, &l.AITraingProhibited, &l.BasePriceCents, &l.Currency); err != nil {
 			return nil, err
 		}
-		if err := json.Unmarshal([]byte(territoriesRaw), &l.TerritoriesISO2Codes); err != nil {
-			l.TerritoriesISO2Codes = []string{}
+		territories, err := r.territoriesForLicense(ctx, l.ID)
+		if err != nil {
+			return nil, err
 		}
+		l.TerritoriesISO2Codes = territories
 		out = append(out, l)
 	}
 	if err := rows.Err(); err != nil {
@@ -88,19 +109,78 @@ func (r *SQLRepository) List(ctx context.Context) ([]License, error) {
 
 func (r *SQLRepository) Get(ctx context.Context, id string) (License, error) {
 	var l License
-	var territoriesRaw string
 	err := r.db.QueryRowContext(ctx, `
-		SELECT id, creator_id, title, description, ai_training_prohibited, base_price_cents, currency, COALESCE(territories_json, '[]')
+		SELECT id, creator_id, title, description, ai_training_prohibited, base_price_cents, currency
 		FROM licenses WHERE id = $1
-	`, id).Scan(&l.ID, &l.CreatorID, &l.Title, &l.Description, &l.AITraingProhibited, &l.BasePriceCents, &l.Currency, &territoriesRaw)
+	`, id).Scan(&l.ID, &l.CreatorID, &l.Title, &l.Description, &l.AITraingProhibited, &l.BasePriceCents, &l.Currency)
 	if errors.Is(err, sql.ErrNoRows) {
 		return License{}, ErrNotFound
 	}
 	if err != nil {
 		return License{}, err
 	}
-	if err := json.Unmarshal([]byte(territoriesRaw), &l.TerritoriesISO2Codes); err != nil {
-		l.TerritoriesISO2Codes = []string{}
+	territories, err := r.territoriesForLicense(ctx, l.ID)
+	if err != nil {
+		return License{}, err
 	}
+	l.TerritoriesISO2Codes = territories
 	return l, nil
+}
+
+func (r *SQLRepository) territoriesForLicense(ctx context.Context, licenseID string) ([]string, error) {
+	rows, err := r.db.QueryContext(ctx, `SELECT iso_code FROM license_territories WHERE license_id = $1 ORDER BY iso_code`, licenseID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var out []string
+	for rows.Next() {
+		var iso string
+		if err := rows.Scan(&iso); err != nil {
+			return nil, err
+		}
+		out = append(out, iso)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func dedupeTerritories(in []string) []string {
+	seen := map[string]struct{}{}
+	out := make([]string, 0, len(in))
+	for _, v := range in {
+		vv := strings.ToUpper(strings.TrimSpace(v))
+		if vv == "" {
+			continue
+		}
+		if _, ok := seen[vv]; ok {
+			continue
+		}
+		seen[vv] = struct{}{}
+		out = append(out, vv)
+	}
+	sort.Strings(out)
+	return out
+}
+
+func OpenPostgresAndEnsureSchema(ctx context.Context, dsn string) (*sql.DB, error) {
+	if dsn == "" {
+		return nil, fmt.Errorf("dsn is required")
+	}
+	db, err := sql.Open("postgres", dsn)
+	if err != nil {
+		return nil, err
+	}
+	if err := db.PingContext(ctx); err != nil {
+		_ = db.Close()
+		return nil, err
+	}
+	if err := EnsureSchema(ctx, db); err != nil {
+		_ = db.Close()
+		return nil, err
+	}
+	return db, nil
 }
