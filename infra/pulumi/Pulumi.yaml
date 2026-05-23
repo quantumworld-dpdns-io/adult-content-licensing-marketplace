@@ -1,0 +1,3 @@
+name: adult-content-licensing-marketplace
+runtime: go
+description: Pulumi scaffold for platform infra
