@@ -158,3 +158,29 @@ func TestAuditEventsEndpoint(t *testing.T) {
 		t.Fatalf("expected 200, got %d", auditRR.Code)
 	}
 }
+
+func TestRequestIDHeaderIsSet(t *testing.T) {
+	mux := NewMux(license.NewMemoryRepository())
+	req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
+	rr := httptest.NewRecorder()
+	mux.ServeHTTP(rr, req)
+	if rr.Header().Get("X-Request-ID") == "" {
+		t.Fatal("expected X-Request-ID header")
+	}
+}
+
+func TestMetricsEndpointAuditorAccess(t *testing.T) {
+	mux := NewMux(license.NewMemoryRepository())
+
+	seed := httptest.NewRequest(http.MethodGet, "/healthz", nil)
+	seedRR := httptest.NewRecorder()
+	mux.ServeHTTP(seedRR, seed)
+
+	req := httptest.NewRequest(http.MethodGet, "/v1/metrics/latency", nil)
+	req.Header.Set("X-Role", "auditor")
+	rr := httptest.NewRecorder()
+	mux.ServeHTTP(rr, req)
+	if rr.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", rr.Code)
+	}
+}

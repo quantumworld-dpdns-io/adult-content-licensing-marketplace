@@ -6,7 +6,9 @@ import (
 
 	"github.com/quantumworld-dpdns-io/adult-content-licensing-marketplace/internal/audit"
 	"github.com/quantumworld-dpdns-io/adult-content-licensing-marketplace/internal/license"
+	"github.com/quantumworld-dpdns-io/adult-content-licensing-marketplace/internal/metrics"
 	"github.com/quantumworld-dpdns-io/adult-content-licensing-marketplace/pkg/api"
+	"github.com/quantumworld-dpdns-io/adult-content-licensing-marketplace/pkg/middleware"
 )
 
 type HealthResponse struct {
@@ -17,7 +19,9 @@ type HealthResponse struct {
 func NewMux(repo license.Repository) *http.ServeMux {
 	mux := http.NewServeMux()
 	stream := audit.NewStream()
+	latency := metrics.NewLatencyStore()
 	licenses := api.LicenseHandler{Repo: repo, Audit: stream}
+
 	mux.HandleFunc("/healthz", healthzHandler)
 	mux.HandleFunc("/readyz", readyzHandler)
 	mux.HandleFunc("/v1/auth/dev-token", api.DevToken)
@@ -38,6 +42,13 @@ func NewMux(repo license.Repository) *http.ServeMux {
 		}
 		licenses.ListAuditEvents(w, r)
 	})
+	mux.HandleFunc("/v1/metrics/latency", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			http.NotFound(w, r)
+			return
+		}
+		api.LatencyStats(latency)(w, r)
+	})
 	mux.HandleFunc("/v1/policy/compliance", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			http.NotFound(w, r)
@@ -52,7 +63,11 @@ func NewMux(repo license.Repository) *http.ServeMux {
 		}
 		licenses.ThreatModelPolicy(w, r)
 	})
-	return mux
+
+	root := middleware.WithRequestID(middleware.WithObservability(latency, mux))
+	wrapped := http.NewServeMux()
+	wrapped.Handle("/", root)
+	return wrapped
 }
 
 func healthzHandler(w http.ResponseWriter, _ *http.Request) {
