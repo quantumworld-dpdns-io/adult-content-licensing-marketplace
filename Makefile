@@ -2,9 +2,8 @@ SHELL := /bin/zsh
 
 APP_NAME := gateway
 BIN_DIR := bin
-CMD_DIR := ./cmd/$(APP_NAME)
 
-.PHONY: init fmt lint test build run clean
+.PHONY: init fmt lint test build run run-license-svc clean docker-up docker-down
 
 init:
 	go mod tidy
@@ -20,10 +19,20 @@ test:
 
 build:
 	mkdir -p $(BIN_DIR)
-	go build -o $(BIN_DIR)/$(APP_NAME) $(CMD_DIR)
+	go build -o $(BIN_DIR)/gateway ./cmd/gateway
+	go build -o $(BIN_DIR)/license-svc ./cmd/license-svc
 
 run:
-	go run $(CMD_DIR)
+	go run ./cmd/gateway
+
+run-license-svc:
+	go run ./cmd/license-svc
+
+docker-up:
+	docker compose -f deploy/docker/docker-compose.yml up -d
+
+docker-down:
+	docker compose -f deploy/docker/docker-compose.yml down
 
 clean:
 	rm -rf $(BIN_DIR)
