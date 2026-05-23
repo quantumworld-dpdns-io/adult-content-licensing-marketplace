@@ -19,6 +19,7 @@ func NewMux() *http.ServeMux {
 	licenses := api.LicenseHandler{Store: store}
 	mux.HandleFunc("/healthz", healthzHandler)
 	mux.HandleFunc("/readyz", readyzHandler)
+	mux.HandleFunc("/v1/auth/dev-token", api.DevToken)
 	mux.HandleFunc("/v1/licenses", func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodGet:
