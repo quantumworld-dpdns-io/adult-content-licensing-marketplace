@@ -89,9 +89,13 @@ paths:
           name: offset
           required: false
           schema: { type: integer }
+        - in: query
+          name: cursor
+          required: false
+          schema: { type: string }
       responses:
         '200':
-          description: Audit events (total count + paged items)
+          description: Audit events (total count + paged items + next_cursor)
         '400':
           description: Invalid query parameter
   /v1/metrics/latency:

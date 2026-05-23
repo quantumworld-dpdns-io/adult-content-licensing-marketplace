@@ -62,3 +62,34 @@ func TestStoreQueryFilterAndPagination(t *testing.T) {
 		t.Fatalf("expected count 2, got %d", cnt)
 	}
 }
+
+func TestStoreCursorPagination(t *testing.T) {
+	t.Parallel()
+	s := NewMemoryStore()
+	now := time.Now().UTC()
+	for i := 0; i < 4; i++ {
+		_ = s.Append(context.Background(), Event{Type: "license.created", EntityID: "C", At: now.Add(time.Duration(i) * time.Second)})
+	}
+	q1 := Query{Type: "license.created", Limit: 2}
+	page1, err := s.Query(context.Background(), q1)
+	if err != nil {
+		t.Fatalf("page1: %v", err)
+	}
+	if len(page1) != 2 {
+		t.Fatalf("expected 2 page1 events, got %d", len(page1))
+	}
+	cur, err := s.NextCursor(context.Background(), q1)
+	if err != nil {
+		t.Fatalf("next cursor: %v", err)
+	}
+	if cur == "" {
+		t.Fatal("expected next cursor")
+	}
+	page2, err := s.Query(context.Background(), Query{Type: "license.created", Limit: 2, Cursor: cur})
+	if err != nil {
+		t.Fatalf("page2: %v", err)
+	}
+	if len(page2) != 2 {
+		t.Fatalf("expected 2 page2 events, got %d", len(page2))
+	}
+}

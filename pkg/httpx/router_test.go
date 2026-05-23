@@ -232,3 +232,43 @@ func TestAuditEventsEndpointWithFilters(t *testing.T) {
 		t.Fatalf("expected offset 0, got %v", out["offset"])
 	}
 }
+
+func TestAuditEventsCursorPagination(t *testing.T) {
+	mux := NewMux(license.NewMemoryRepository(), audit.NewMemoryStore())
+
+	for i := 0; i < 3; i++ {
+		body := []byte(`{"id":"lic_cur_` + string(rune('a'+i)) + `","creator_id":"u","title":"T","currency":"USDC"}`)
+		req := httptest.NewRequest(http.MethodPost, "/v1/licenses", bytes.NewReader(body))
+		req.Header.Set("X-Role", "admin")
+		req.Header.Set("X-Sub", "admin-1")
+		rr := httptest.NewRecorder()
+		mux.ServeHTTP(rr, req)
+		if rr.Code != http.StatusCreated {
+			t.Fatalf("seed create failed: %d", rr.Code)
+		}
+	}
+
+	req1 := httptest.NewRequest(http.MethodGet, "/v1/audit/events?type=license.created&limit=2", nil)
+	req1.Header.Set("X-Role", "auditor")
+	rr1 := httptest.NewRecorder()
+	mux.ServeHTTP(rr1, req1)
+	if rr1.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", rr1.Code)
+	}
+	var out1 map[string]any
+	if err := json.Unmarshal(rr1.Body.Bytes(), &out1); err != nil {
+		t.Fatalf("decode1: %v", err)
+	}
+	cursor, _ := out1["next_cursor"].(string)
+	if cursor == "" {
+		t.Fatal("expected next_cursor")
+	}
+
+	req2 := httptest.NewRequest(http.MethodGet, "/v1/audit/events?type=license.created&limit=2&cursor="+cursor, nil)
+	req2.Header.Set("X-Role", "auditor")
+	rr2 := httptest.NewRecorder()
+	mux.ServeHTTP(rr2, req2)
+	if rr2.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", rr2.Code)
+	}
+}
