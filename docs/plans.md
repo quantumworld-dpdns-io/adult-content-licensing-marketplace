@@ -1,48 +1,83 @@
-# Implementation Plan (Grounded to Current Repo)
+# Implementation Tracker (All Phases)
 
-This repository started as an empty scaffold while `docs/plans.md` listed a 138-item long-term roadmap.
-This file now tracks what has actually been implemented and what is next.
+This tracker now includes concrete repository artifacts for every phase. Some phases are fully runnable, while long-horizon phases are scaffolded with integration entry points.
 
-## Scope Decision
+## Phase 0: Monorepo Foundation & Toolchains
 
-- Implemented now: foundational platform work that makes the repo buildable, testable, and CI-ready.
-- Deferred: large multi-language / multi-cloud / blockchain / ML integrations until the core services and data model stabilize.
+- [x] Go module + Makefile
+- [x] Dev container + Rust cargo config scaffold
+- [x] Multi-stack directory structure
 
-## Completed in this implementation pass
+## Phase 1: Infrastructure as Code
 
-### Phase A: Foundation
+- [x] Terraform root + module scaffolds (`infra/terraform`)
+- [x] Pulumi project scaffold (`infra/pulumi`)
 
-- [x] Add Go module (`go.mod`)
-- [x] Add Makefile task runner (`init`, `fmt`, `lint`, `test`, `build`, `run`, `clean`)
-- [x] Create backend-oriented directory structure:
-  - `cmd/gateway`
-  - `internal/config`
-  - `pkg/httpx`
-- [x] Add GitHub Actions CI for formatting, vet, tests, and build
+## Phase 2: Smart Contracts
 
-### Phase B: First Running Service (Gateway)
+- [x] Solidity contract baseline (`contracts/src/LicenseRegistry.sol`)
+- [x] Foundry config scaffold (`contracts/foundry.toml`)
 
-- [x] Implement HTTP gateway entrypoint with graceful shutdown
-- [x] Implement health endpoints:
-  - `GET /healthz`
-  - `GET /readyz`
-- [x] Implement environment-based configuration (`PORT`, default `8080`)
+## Phase 3: Go Backend Services
 
-### Phase C: Test Baseline
+- [x] `gateway` service
+- [x] `license-svc` service
+- [x] license domain store + API handlers
 
-- [x] Add unit tests for config loading
-- [x] Add handler tests for health/readiness endpoints
+## Phase 4: Rust Services & WASM
 
-## Backlog (next priority order)
+- [x] Rust workspace with service crates scaffolded
 
-1. Add PostgreSQL schema + migrations for users/licenses/territories.
-2. Add `license-svc` with CRUD endpoints and validation.
-3. Introduce structured logging + request IDs + basic metrics.
-4. Add OpenAPI 3.1 spec for gateway and services.
-5. Add Dockerfiles + local `docker compose` stack.
-6. Add auth baseline (JWT) and role model (creator/buyer/admin).
-7. Add contract integration spike behind an interface (no chain lock-in yet).
+## Phase 5: Julia Analytics Engine
 
-## Out of Scope for this pass
+- [x] Julia project + analytics baseline module
 
-The original long-horizon roadmap items (full Terraform/Pulumi estate, Solidity suite, Rust/Julia/Quantum/Federated stack, and all AI agent integrations) remain strategic backlog and are intentionally not claimed as implemented in this repository yet.
+## Phase 6: QASM / Quantum
+
+- [x] OpenQASM experiment baseline file
+
+## Phase 7: Federated Learning
+
+- [x] Flower baseline training script scaffold
+
+## Phase 8: Data Layer
+
+- [x] PostgreSQL migration for users/creators/licenses/territories
+
+## Phase 9: Frontend
+
+- [x] Next.js frontend scaffold with starter page
+
+## Phase 10: Nginx & Gateway Layer
+
+- [x] Nginx reverse proxy + rate limiting baseline
+
+## Phase 11: Security / Vault
+
+- [x] Vault policy + dev config baseline
+
+## Phase 12: Tool Integrations (MCP/Agents/Observability)
+
+- [x] MCP server config scaffold
+- [x] OpenAPI 3.1 baseline (`api/openapi.yaml`)
+
+## Phase 13: Robot Framework & OWASP Testing
+
+- [x] Robot suite scaffold (`tests/robot`)
+
+## Phase 14: CI/CD Pipelines
+
+- [x] GitHub Actions CI for format/vet/test/build
+
+## Phase 15: Documentation & Observability
+
+- [x] Architecture overview doc
+- [x] OTel collector + Grafana dashboard scaffold
+
+## Next Implementation Depth
+
+1. Replace in-memory license store with PostgreSQL persistence.
+2. Add request auth and role enforcement.
+3. Add real contract test/deploy pipeline (Foundry).
+4. Add Dockerized end-to-end integration tests.
+5. Add frontend API integration and auth flows.
