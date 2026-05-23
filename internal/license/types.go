@@ -9,4 +9,5 @@ type License struct {
 	BasePriceCents       int64    `json:"base_price_cents"`
 	Currency             string   `json:"currency"`
 	TerritoriesISO2Codes []string `json:"territories_iso2_codes"`
+	Version              int64    `json:"version"`
 }
