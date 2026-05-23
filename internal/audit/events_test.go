@@ -1,12 +1,20 @@
 package audit
 
-import "testing"
+import (
+	"context"
+	"testing"
+)
 
-func TestStreamAppendList(t *testing.T) {
+func TestStoreAppendList(t *testing.T) {
 	t.Parallel()
-	s := NewStream()
-	s.Append(Event{Type: "license.created", EntityID: "lic_1"})
-	all := s.List()
+	s := NewMemoryStore()
+	if err := s.Append(context.Background(), Event{Type: "license.created", EntityID: "lic_1"}); err != nil {
+		t.Fatalf("append: %v", err)
+	}
+	all, err := s.List(context.Background())
+	if err != nil {
+		t.Fatalf("list: %v", err)
+	}
 	if len(all) != 1 {
 		t.Fatalf("expected 1 event, got %d", len(all))
 	}

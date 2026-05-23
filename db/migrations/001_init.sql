@@ -20,7 +20,6 @@ CREATE TABLE IF NOT EXISTS licenses (
   ai_training_prohibited BOOLEAN NOT NULL DEFAULT true,
   base_price_cents BIGINT NOT NULL CHECK (base_price_cents >= 0),
   currency TEXT NOT NULL DEFAULT 'USDC',
-  territories_json TEXT NOT NULL DEFAULT '[]',
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
@@ -28,4 +27,14 @@ CREATE TABLE IF NOT EXISTS license_territories (
   license_id TEXT NOT NULL REFERENCES licenses(id) ON DELETE CASCADE,
   iso_code TEXT NOT NULL,
   PRIMARY KEY (license_id, iso_code)
+);
+
+CREATE TABLE IF NOT EXISTS audit_events (
+  id BIGSERIAL PRIMARY KEY,
+  type TEXT NOT NULL,
+  actor_sub TEXT NOT NULL,
+  actor_role TEXT NOT NULL,
+  entity_id TEXT NOT NULL,
+  meta_json TEXT NOT NULL DEFAULT '{}',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
