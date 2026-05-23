@@ -1,33 +1,42 @@
 # adult-content-licensing-marketplace
 
-> Adult content licensing marketplace – smart-license registry for B2B licensing with territory, revenue share, and AI-training prohibition
+Adult content licensing marketplace with territory-aware licensing and policy constraints.
 
-## Overview
+## Current Status
 
-This repository is part of the [quantumworld-dpdns-io](https://github.com/quantumworld-dpdns-io) Wild SaaS & Tech Development initiative.
+This repo now includes a runnable Go gateway service and CI baseline.
 
-## Getting Started
+## Quick Start
 
 ```bash
-# Clone the repo
 git clone https://github.com/quantumworld-dpdns-io/adult-content-licensing-marketplace.git
 cd adult-content-licensing-marketplace
+
+make init
+make test
+make run
 ```
+
+Gateway defaults to `:8080` and exposes:
+
+- `GET /healthz`
+- `GET /readyz`
 
 ## Project Structure
 
-```
+```text
 .
-├── src/          # Application source code
-├── docs/         # Architecture decisions, API specs, runbooks
-├── tests/        # Unit / integration / e2e tests
-└── .github/
-    └── workflows/ # CI/CD pipelines
+├── cmd/gateway/           # Gateway binary entrypoint
+├── internal/config/       # Internal configuration loading
+├── pkg/httpx/             # Shared HTTP handlers/router
+├── docs/                  # Plans and architecture docs
+├── tests/                 # Reserved for integration/e2e tests
+└── .github/workflows/     # CI
 ```
 
-## Contributing
+## Roadmap
 
-Please read [CONTRIBUTING.md](docs/CONTRIBUTING.md) before opening a pull request.
+Implementation tracker: `docs/plans.md`
 
 ## License
 
