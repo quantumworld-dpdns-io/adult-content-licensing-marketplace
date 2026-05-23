@@ -11,6 +11,9 @@ func NewMemoryRepository() *MemoryRepository {
 }
 
 func (s *MemoryRepository) Create(_ context.Context, l License) (License, error) {
+	if l.Version <= 0 {
+		l.Version = 1
+	}
 	s.items[l.ID] = l
 	return l, nil
 }
@@ -32,11 +35,18 @@ func (s *MemoryRepository) Get(_ context.Context, id string) (License, error) {
 }
 
 func (s *MemoryRepository) Update(_ context.Context, id string, in License) (License, error) {
-	_, ok := s.items[id]
+	cur, ok := s.items[id]
 	if !ok {
 		return License{}, ErrNotFound
 	}
+	if in.Version <= 0 {
+		return License{}, ErrBadVersion
+	}
+	if in.Version != cur.Version {
+		return License{}, ErrConflict
+	}
 	in.ID = id
+	in.Version = cur.Version + 1
 	s.items[id] = in
 	return in, nil
 }

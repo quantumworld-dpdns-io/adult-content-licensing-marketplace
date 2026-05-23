@@ -45,7 +45,7 @@ func (r *SQLRepository) Create(ctx context.Context, l License) (License, error) 
 	}
 	defer tx.Rollback()
 
-	_, err = tx.ExecContext(ctx, `INSERT INTO licenses (id, creator_id, title, description, ai_training_prohibited, base_price_cents, currency) VALUES ($1,$2,$3,$4,$5,$6,$7)`, l.ID, l.CreatorID, l.Title, l.Description, l.AITraingProhibited, l.BasePriceCents, l.Currency)
+	_, err = tx.ExecContext(ctx, `INSERT INTO licenses (id, creator_id, title, description, ai_training_prohibited, base_price_cents, currency, version) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`, l.ID, l.CreatorID, l.Title, l.Description, l.AITraingProhibited, l.BasePriceCents, l.Currency, 1)
 	if err != nil {
 		return License{}, err
 	}
@@ -58,11 +58,12 @@ func (r *SQLRepository) Create(ctx context.Context, l License) (License, error) 
 	if err := tx.Commit(); err != nil {
 		return License{}, err
 	}
+	l.Version = 1
 	return l, nil
 }
 
 func (r *SQLRepository) List(ctx context.Context) ([]License, error) {
-	rows, err := r.db.QueryContext(ctx, `SELECT id, creator_id, title, description, ai_training_prohibited, base_price_cents, currency FROM licenses ORDER BY created_at DESC`)
+	rows, err := r.db.QueryContext(ctx, `SELECT id, creator_id, title, description, ai_training_prohibited, base_price_cents, currency, version FROM licenses ORDER BY created_at DESC`)
 	if err != nil {
 		return nil, err
 	}
@@ -70,7 +71,7 @@ func (r *SQLRepository) List(ctx context.Context) ([]License, error) {
 	out := []License{}
 	for rows.Next() {
 		var l License
-		if err := rows.Scan(&l.ID, &l.CreatorID, &l.Title, &l.Description, &l.AITraingProhibited, &l.BasePriceCents, &l.Currency); err != nil {
+		if err := rows.Scan(&l.ID, &l.CreatorID, &l.Title, &l.Description, &l.AITraingProhibited, &l.BasePriceCents, &l.Currency, &l.Version); err != nil {
 			return nil, err
 		}
 		territories, err := r.territoriesForLicense(ctx, l.ID)
@@ -88,7 +89,7 @@ func (r *SQLRepository) List(ctx context.Context) ([]License, error) {
 
 func (r *SQLRepository) Get(ctx context.Context, id string) (License, error) {
 	var l License
-	err := r.db.QueryRowContext(ctx, `SELECT id, creator_id, title, description, ai_training_prohibited, base_price_cents, currency FROM licenses WHERE id=$1`, id).Scan(&l.ID, &l.CreatorID, &l.Title, &l.Description, &l.AITraingProhibited, &l.BasePriceCents, &l.Currency)
+	err := r.db.QueryRowContext(ctx, `SELECT id, creator_id, title, description, ai_training_prohibited, base_price_cents, currency, version FROM licenses WHERE id=$1`, id).Scan(&l.ID, &l.CreatorID, &l.Title, &l.Description, &l.AITraingProhibited, &l.BasePriceCents, &l.Currency, &l.Version)
 	if errors.Is(err, sql.ErrNoRows) {
 		return License{}, ErrNotFound
 	}
@@ -110,13 +111,23 @@ func (r *SQLRepository) Update(ctx context.Context, id string, in License) (Lice
 	}
 	defer tx.Rollback()
 
-	res, err := tx.ExecContext(ctx, `UPDATE licenses SET creator_id=$2,title=$3,description=$4,ai_training_prohibited=$5,base_price_cents=$6,currency=$7 WHERE id=$1`, id, in.CreatorID, in.Title, in.Description, in.AITraingProhibited, in.BasePriceCents, in.Currency)
+	if in.Version <= 0 {
+		return License{}, ErrBadVersion
+	}
+	res, err := tx.ExecContext(ctx, `UPDATE licenses SET creator_id=$2,title=$3,description=$4,ai_training_prohibited=$5,base_price_cents=$6,currency=$7,version=version+1 WHERE id=$1 AND version=$8`, id, in.CreatorID, in.Title, in.Description, in.AITraingProhibited, in.BasePriceCents, in.Currency, in.Version)
 	if err != nil {
 		return License{}, err
 	}
 	aff, _ := res.RowsAffected()
 	if aff == 0 {
-		return License{}, ErrNotFound
+		var exists int
+		if err := tx.QueryRowContext(ctx, `SELECT COUNT(1) FROM licenses WHERE id=$1`, id).Scan(&exists); err != nil {
+			return License{}, err
+		}
+		if exists == 0 {
+			return License{}, ErrNotFound
+		}
+		return License{}, ErrConflict
 	}
 
 	if _, err := tx.ExecContext(ctx, `DELETE FROM license_territories WHERE license_id=$1`, id); err != nil {
@@ -132,6 +143,7 @@ func (r *SQLRepository) Update(ctx context.Context, id string, in License) (Lice
 		return License{}, err
 	}
 	in.ID = id
+	in.Version = in.Version + 1
 	return in, nil
 }
 

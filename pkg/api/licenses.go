@@ -43,6 +43,14 @@ func (h LicenseHandler) GetByID(w http.ResponseWriter, r *http.Request, id strin
 			writeJSON(w, http.StatusNotFound, map[string]string{"error": "not found"})
 			return
 		}
+		if errors.Is(err, license.ErrConflict) {
+			writeJSON(w, http.StatusConflict, map[string]string{"error": "version conflict"})
+			return
+		}
+		if errors.Is(err, license.ErrBadVersion) {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "version is required"})
+			return
+		}
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "get failed"})
 		return
 	}
@@ -101,6 +109,10 @@ func (h LicenseHandler) UpdateByID(w http.ResponseWriter, r *http.Request, id st
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "creator_id and title are required"})
 		return
 	}
+	if in.Version <= 0 {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "version is required"})
+		return
+	}
 	if in.Currency == "" {
 		in.Currency = "USDC"
 	}
@@ -112,6 +124,14 @@ func (h LicenseHandler) UpdateByID(w http.ResponseWriter, r *http.Request, id st
 	if err != nil {
 		if errors.Is(err, license.ErrNotFound) {
 			writeJSON(w, http.StatusNotFound, map[string]string{"error": "not found"})
+			return
+		}
+		if errors.Is(err, license.ErrConflict) {
+			writeJSON(w, http.StatusConflict, map[string]string{"error": "version conflict"})
+			return
+		}
+		if errors.Is(err, license.ErrBadVersion) {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "version is required"})
 			return
 		}
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "update failed"})
