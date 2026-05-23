@@ -3,6 +3,9 @@ package httpx
 import (
 	"encoding/json"
 	"net/http"
+
+	"github.com/quantumworld-dpdns-io/adult-content-licensing-marketplace/internal/license"
+	"github.com/quantumworld-dpdns-io/adult-content-licensing-marketplace/pkg/api"
 )
 
 type HealthResponse struct {
@@ -12,8 +15,20 @@ type HealthResponse struct {
 
 func NewMux() *http.ServeMux {
 	mux := http.NewServeMux()
+	store := license.NewStore()
+	licenses := api.LicenseHandler{Store: store}
 	mux.HandleFunc("/healthz", healthzHandler)
 	mux.HandleFunc("/readyz", readyzHandler)
+	mux.HandleFunc("/v1/licenses", func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodGet:
+			licenses.List(w, r)
+		case http.MethodPost:
+			licenses.Create(w, r)
+		default:
+			http.NotFound(w, r)
+		}
+	})
 	return mux
 }
 
