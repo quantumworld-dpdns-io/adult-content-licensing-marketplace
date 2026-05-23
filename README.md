@@ -48,6 +48,8 @@ Dev token issuance for local testing:
 - `GET /readyz`
 - `GET /v1/licenses`
 - `POST /v1/licenses`
+- `GET /v1/licenses/{id}`
+- `PUT /v1/licenses/{id}`
 - `GET /v1/policy/compliance` (admin/auditor)
 - `GET /v1/policy/threat-model` (admin/auditor)
 

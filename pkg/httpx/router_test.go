@@ -273,3 +273,61 @@ func TestAuditEventsCursorPagination(t *testing.T) {
 		t.Fatalf("expected 200, got %d", rr2.Code)
 	}
 }
+
+func TestLicenseGetByID(t *testing.T) {
+	mux := NewMux(license.NewMemoryRepository(), audit.NewMemoryStore())
+
+	createBody := []byte(`{"id":"lic_g1","creator_id":"u_1","title":"One","currency":"USDC"}`)
+	createReq := httptest.NewRequest(http.MethodPost, "/v1/licenses", bytes.NewReader(createBody))
+	createReq.Header.Set("X-Role", "admin")
+	createRR := httptest.NewRecorder()
+	mux.ServeHTTP(createRR, createReq)
+	if createRR.Code != http.StatusCreated {
+		t.Fatalf("create failed: %d", createRR.Code)
+	}
+
+	getReq := httptest.NewRequest(http.MethodGet, "/v1/licenses/lic_g1", nil)
+	getReq.Header.Set("X-Role", "auditor")
+	getRR := httptest.NewRecorder()
+	mux.ServeHTTP(getRR, getReq)
+	if getRR.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", getRR.Code)
+	}
+}
+
+func TestLicenseUpdateByID(t *testing.T) {
+	mux := NewMux(license.NewMemoryRepository(), audit.NewMemoryStore())
+
+	createBody := []byte(`{"id":"lic_u1","creator_id":"u_1","title":"Before","currency":"USDC"}`)
+	createReq := httptest.NewRequest(http.MethodPost, "/v1/licenses", bytes.NewReader(createBody))
+	createReq.Header.Set("X-Role", "admin")
+	createRR := httptest.NewRecorder()
+	mux.ServeHTTP(createRR, createReq)
+	if createRR.Code != http.StatusCreated {
+		t.Fatalf("create failed: %d", createRR.Code)
+	}
+
+	updBody := []byte(`{"creator_id":"u_1","title":"After","currency":"ETH"}`)
+	updReq := httptest.NewRequest(http.MethodPut, "/v1/licenses/lic_u1", bytes.NewReader(updBody))
+	updReq.Header.Set("X-Role", "admin")
+	updRR := httptest.NewRecorder()
+	mux.ServeHTTP(updRR, updReq)
+	if updRR.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", updRR.Code)
+	}
+
+	getReq := httptest.NewRequest(http.MethodGet, "/v1/licenses/lic_u1", nil)
+	getReq.Header.Set("X-Role", "admin")
+	getRR := httptest.NewRecorder()
+	mux.ServeHTTP(getRR, getReq)
+	if getRR.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", getRR.Code)
+	}
+	var out map[string]any
+	if err := json.Unmarshal(getRR.Body.Bytes(), &out); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if out["title"] != "After" {
+		t.Fatalf("expected title After, got %v", out["title"])
+	}
+}

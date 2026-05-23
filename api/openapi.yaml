@@ -60,6 +60,33 @@ paths:
           description: Validation failed
         '403':
           description: Forbidden
+  /v1/licenses/{id}:
+    get:
+      operationId: getLicenseById
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: License
+        '404':
+          description: Not found
+    put:
+      operationId: updateLicenseById
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: License updated
+        '404':
+          description: Not found
   /v1/audit/events:
     get:
       operationId: listAuditEvents
