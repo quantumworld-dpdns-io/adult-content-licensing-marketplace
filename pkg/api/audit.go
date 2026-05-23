@@ -20,7 +20,7 @@ func (h LicenseHandler) ListAuditEvents(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	if h.Audit == nil {
-		writeJSON(w, http.StatusOK, map[string]any{"items": []any{}, "total": 0, "limit": 100, "offset": 0})
+		writeJSON(w, http.StatusOK, map[string]any{"items": []any{}, "total": 0, "limit": 100, "offset": 0, "next_cursor": ""})
 		return
 	}
 
@@ -29,8 +29,7 @@ func (h LicenseHandler) ListAuditEvents(w http.ResponseWriter, r *http.Request) 
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 		return
 	}
-	n := q
-	n = n.Normalized()
+	n := q.Normalized()
 
 	total, err := h.Audit.Count(r.Context(), n)
 	if err != nil {
@@ -42,12 +41,23 @@ func (h LicenseHandler) ListAuditEvents(w http.ResponseWriter, r *http.Request) 
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "audit list failed"})
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"items": items, "total": total, "limit": n.Limit, "offset": n.Offset})
+	nextCursor, err := h.Audit.NextCursor(r.Context(), n)
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{
+		"items":       items,
+		"total":       total,
+		"limit":       n.Limit,
+		"offset":      n.Offset,
+		"next_cursor": nextCursor,
+	})
 }
 
 func parseAuditQuery(r *http.Request) (audit.Query, error) {
 	vals := r.URL.Query()
-	q := audit.Query{Type: vals.Get("type"), EntityID: vals.Get("entity_id")}
+	q := audit.Query{Type: vals.Get("type"), EntityID: vals.Get("entity_id"), Cursor: vals.Get("cursor")}
 	if s := vals.Get("since"); s != "" {
 		t, err := time.Parse(time.RFC3339, s)
 		if err != nil {
