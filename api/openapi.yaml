@@ -60,6 +60,13 @@ paths:
           description: Validation failed
         '403':
           description: Forbidden
+  /v1/audit/events:
+    get:
+      operationId: listAuditEvents
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Audit events
   /v1/policy/compliance:
     get:
       operationId: getCompliancePolicy
