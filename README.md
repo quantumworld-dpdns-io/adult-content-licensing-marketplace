@@ -2,9 +2,18 @@
 
 Adult content licensing marketplace with territory-aware licensing and AI-training policy controls.
 
-## Current State
+## Locked MVP Defaults (2026-05-23)
 
-This repo now implements all roadmap phases at baseline depth, with runnable Go services and scaffolded multi-stack integrations.
+- AWS-first architecture
+- p95 <= 300ms target for core API
+- 500 peak RPS, 20k DAU, 2k peak concurrency
+- Crypto-only payments (USDC/USDT/ETH)
+- Roles: `admin`, `regularuser`, `auditor`
+- Tiers: `alpha`, `beta`, `vip1`, `vip2`, `vip3`
+- Compliance emphasis: KYC/AML, age verification, GDPR/CCPA, 2257, DMCA
+- Threat modeling references: STRIDE, PASTA, OWASP Top 10
+
+Full spec: `docs/spec/assumed-defaults-mvp.md`
 
 ## Quick Start
 
@@ -14,29 +23,16 @@ make test
 make run
 ```
 
-Gateway endpoints:
+## Current API
 
 - `GET /healthz`
 - `GET /readyz`
-- `GET /v1/licenses`
-- `POST /v1/licenses`
+- `GET /v1/licenses` (requires `X-Role`)
+- `POST /v1/licenses` (requires role/tier and crypto currency)
+- `GET /v1/policy/compliance` (admin/auditor)
+- `GET /v1/policy/threat-model` (admin/auditor)
 
-## Key Paths
-
-- `cmd/gateway`, `cmd/license-svc` — runnable Go services
-- `db/migrations` — PostgreSQL schema migrations
-- `api/openapi.yaml` — OpenAPI 3.1 baseline
-- `deploy/docker` — local docker compose stack
-- `infra/terraform`, `infra/pulumi` — IaC scaffolds
-- `contracts` — Solidity baseline
-- `rust`, `julia`, `qasm`, `federated` — advanced-stack scaffolds
-- `security/vault` — Vault policy/config baseline
-- `tests/robot` — Robot framework scaffold
-- `observability` — Grafana + OTel baseline
-
-## Plan Tracker
-
-See `docs/plans.md`.
+OpenAPI: `api/openapi.yaml`
 
 ## License
 
