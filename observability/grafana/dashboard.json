@@ -1,0 +1,10 @@
+{
+  "title": "Marketplace Service Overview",
+  "panels": [
+    {
+      "type": "stat",
+      "title": "Gateway Health",
+      "targets": []
+    }
+  ]
+}
