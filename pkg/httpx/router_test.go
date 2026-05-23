@@ -106,7 +106,6 @@ func TestPolicyEndpointsAuditorAccess(t *testing.T) {
 }
 
 func TestDevTokenAndBearerAccess(t *testing.T) {
-	t.Parallel()
 	mux := NewMux()
 
 	t.Setenv("AUTH_SECRET", "local-secret")
