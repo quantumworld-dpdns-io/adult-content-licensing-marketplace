@@ -8,6 +8,8 @@ import (
 	"os"
 	"time"
 
+	_ "github.com/lib/pq"
+
 	"github.com/quantumworld-dpdns-io/adult-content-licensing-marketplace/internal/license"
 )
 

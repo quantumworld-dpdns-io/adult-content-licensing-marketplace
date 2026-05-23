@@ -9,6 +9,8 @@ import (
 	"syscall"
 	"time"
 
+	_ "github.com/lib/pq"
+
 	"github.com/quantumworld-dpdns-io/adult-content-licensing-marketplace/internal/config"
 	"github.com/quantumworld-dpdns-io/adult-content-licensing-marketplace/internal/license"
 	"github.com/quantumworld-dpdns-io/adult-content-licensing-marketplace/pkg/httpx"
