@@ -29,6 +29,7 @@ make run
 - `LICENSE_STORE_BACKEND=postgres` with `DATABASE_URL`
 
 Note: Postgres backend requires a registered SQL driver in the build.
+Local setup/runbook: `docs/architecture/postgres-local.md`
 
 ## Auth (Current)
 
