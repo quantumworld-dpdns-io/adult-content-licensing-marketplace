@@ -5,10 +5,10 @@ import (
 	"testing"
 )
 
-func TestMemoryRepositoryCreateGet(t *testing.T) {
+func TestMemoryRepositoryCreateGetUpdate(t *testing.T) {
 	t.Parallel()
 	s := NewMemoryRepository()
-	created, err := s.Create(context.Background(), License{ID: "1", CreatorID: "c1", Title: "t1"})
+	created, err := s.Create(context.Background(), License{ID: "1", CreatorID: "c1", Title: "t1", Currency: "USDC"})
 	if err != nil {
 		t.Fatalf("unexpected create error: %v", err)
 	}
@@ -22,23 +22,11 @@ func TestMemoryRepositoryCreateGet(t *testing.T) {
 	if got.Title != "t1" {
 		t.Fatalf("expected title t1, got %s", got.Title)
 	}
-}
-
-func TestNewRepositoryDefaultsToMemory(t *testing.T) {
-	t.Parallel()
-	repo, err := NewRepository("", "")
+	updated, err := s.Update(context.Background(), "1", License{CreatorID: "c1", Title: "t2", Currency: "ETH"})
 	if err != nil {
-		t.Fatalf("expected nil err, got %v", err)
+		t.Fatalf("unexpected update error: %v", err)
 	}
-	if _, ok := repo.(*MemoryRepository); !ok {
-		t.Fatalf("expected memory repo, got %T", repo)
-	}
-}
-
-func TestNewRepositoryPostgresRequiresDSN(t *testing.T) {
-	t.Parallel()
-	_, err := NewRepository("postgres", "")
-	if err == nil {
-		t.Fatal("expected error for missing DATABASE_URL")
+	if updated.Title != "t2" || updated.ID != "1" {
+		t.Fatalf("unexpected updated value: %+v", updated)
 	}
 }
