@@ -18,7 +18,7 @@ Assumed defaults are locked in `docs/spec/assumed-defaults-mvp.md` and treated a
 - [x] Configurable storage backend (`memory` default, `postgres` option)
 - [x] SQL repository implementation scaffold for PostgreSQL
 - [x] Runtime schema bootstrap + `migrate` command
-- [x] Durable audit store (memory/postgres) + protected audit endpoint
+- [x] Durable audit store (memory/postgres) + protected audit endpoint with query filters/pagination
 - [x] Request ID middleware + structured access logging
 - [x] In-process latency metrics snapshot endpoint (`/v1/metrics/latency`)
 - [x] Multi-phase scaffolds for infra/contracts/rust/julia/quantum/federated/frontend/security/observability
