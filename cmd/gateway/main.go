@@ -10,12 +10,20 @@ import (
 	"time"
 
 	"github.com/quantumworld-dpdns-io/adult-content-licensing-marketplace/internal/config"
+	"github.com/quantumworld-dpdns-io/adult-content-licensing-marketplace/internal/license"
 	"github.com/quantumworld-dpdns-io/adult-content-licensing-marketplace/pkg/httpx"
 )
 
 func main() {
 	cfg := config.Load()
-	mux := httpx.NewMux()
+	_ = os.Setenv("AUTH_SECRET", cfg.AuthSecret)
+
+	repo, err := license.NewRepository(cfg.LicenseStoreBackend, cfg.DatabaseURL)
+	if err != nil {
+		log.Fatalf("repository init failed: %v", err)
+	}
+
+	mux := httpx.NewMux(repo)
 
 	srv := &http.Server{
 		Addr:              ":" + cfg.Port,
@@ -27,7 +35,7 @@ func main() {
 	defer stop()
 
 	go func() {
-		log.Printf("gateway listening on :%s", cfg.Port)
+		log.Printf("gateway listening on :%s (license backend=%s)", cfg.Port, cfg.LicenseStoreBackend)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("server failed: %v", err)
 		}
