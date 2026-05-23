@@ -9,7 +9,6 @@ import (
 	"strings"
 )
 
-var ErrNotFound = errors.New("license not found")
 
 type Repository interface {
 	Create(ctx context.Context, l License) (License, error)

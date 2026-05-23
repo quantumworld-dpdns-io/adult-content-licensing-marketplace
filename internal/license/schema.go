@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS licenses (
   ai_training_prohibited BOOLEAN NOT NULL DEFAULT true,
   base_price_cents BIGINT NOT NULL CHECK (base_price_cents >= 0),
   currency TEXT NOT NULL DEFAULT 'USDC',
+  version BIGINT NOT NULL DEFAULT 1,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
