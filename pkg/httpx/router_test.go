@@ -211,11 +211,20 @@ func TestAuditEventsEndpointWithFilters(t *testing.T) {
 		t.Fatalf("expected 200, got %d", rr.Code)
 	}
 
-	var out map[string][]map[string]any
+	var out map[string]any
 	if err := json.Unmarshal(rr.Body.Bytes(), &out); err != nil {
 		t.Fatalf("decode: %v", err)
 	}
 	if len(out["items"]) != 1 {
 		t.Fatalf("expected 1 filtered item, got %d", len(out["items"]))
+	}
+	if int(out["total"].(float64)) < 1 {
+		t.Fatalf("expected total >= 1, got %v", out["total"])
+	}
+	if int(out["limit"].(float64)) != 1 {
+		t.Fatalf("expected limit 1, got %v", out["limit"])
+	}
+	if int(out["offset"].(float64)) != 0 {
+		t.Fatalf("expected offset 0, got %v", out["offset"])
 	}
 }

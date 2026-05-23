@@ -53,4 +53,12 @@ func TestStoreQueryFilterAndPagination(t *testing.T) {
 	if len(res3) != 1 {
 		t.Fatalf("expected 1 paged event, got %d", len(res3))
 	}
+
+	cnt, err := s.Count(context.Background(), Query{Type: "license.created"})
+	if err != nil {
+		t.Fatalf("count: %v", err)
+	}
+	if cnt != 2 {
+		t.Fatalf("expected count 2, got %d", cnt)
+	}
 }
