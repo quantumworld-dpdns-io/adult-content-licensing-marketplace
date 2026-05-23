@@ -236,8 +236,9 @@ func TestAuditEventsEndpointWithFilters(t *testing.T) {
 func TestAuditEventsCursorPagination(t *testing.T) {
 	mux := NewMux(license.NewMemoryRepository(), audit.NewMemoryStore())
 
-	for i := 0; i < 3; i++ {
-		body := []byte(`{"id":"lic_cur_` + string(rune('a'+i)) + `","creator_id":"u","title":"T","currency":"USDC"}`)
+	ids := []string{"lic_cur_a", "lic_cur_b", "lic_cur_c"}
+	for _, id := range ids {
+		body := []byte(`{"id":"` + id + `","creator_id":"u","title":"T","currency":"USDC"}`)
 		req := httptest.NewRequest(http.MethodPost, "/v1/licenses", bytes.NewReader(body))
 		req.Header.Set("X-Role", "admin")
 		req.Header.Set("X-Sub", "admin-1")
