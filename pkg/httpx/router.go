@@ -3,6 +3,7 @@ package httpx
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 
 	"github.com/quantumworld-dpdns-io/adult-content-licensing-marketplace/internal/audit"
 	"github.com/quantumworld-dpdns-io/adult-content-licensing-marketplace/internal/license"
@@ -30,6 +31,21 @@ func NewMux(repo license.Repository, auditStore audit.Store) *http.ServeMux {
 			licenses.List(w, r)
 		case http.MethodPost:
 			licenses.Create(w, r)
+		default:
+			http.NotFound(w, r)
+		}
+	})
+	mux.HandleFunc("/v1/licenses/", func(w http.ResponseWriter, r *http.Request) {
+		id := strings.TrimPrefix(r.URL.Path, "/v1/licenses/")
+		if id == "" || strings.Contains(id, "/") {
+			http.NotFound(w, r)
+			return
+		}
+		switch r.Method {
+		case http.MethodGet:
+			licenses.GetByID(w, r, id)
+		case http.MethodPut:
+			licenses.UpdateByID(w, r, id)
 		default:
 			http.NotFound(w, r)
 		}
