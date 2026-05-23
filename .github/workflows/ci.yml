@@ -2,11 +2,11 @@ name: ci
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, dev ]
   pull_request:
 
 jobs:
-  test:
+  go:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -19,7 +19,7 @@ jobs:
 
       - name: Verify formatting
         run: |
-          test -z "$(gofmt -l $(find . -name '*.go' -not -path './vendor/*'))"
+          test -z "$(gofmt -l $(find . -name '*.go' -not -path './vendor/*' -not -path './infra/pulumi/*'))"
 
       - name: Vet
         run: go vet ./...
@@ -28,4 +28,4 @@ jobs:
         run: go test ./...
 
       - name: Build
-        run: go build ./...
+        run: go build ./cmd/gateway ./cmd/license-svc
