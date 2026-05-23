@@ -20,5 +20,10 @@ func (h LicenseHandler) ListAuditEvents(w http.ResponseWriter, r *http.Request) 
 		writeJSON(w, http.StatusOK, map[string]any{"items": []any{}})
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"items": h.Audit.List()})
+	items, err := h.Audit.List(r.Context())
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "audit list failed"})
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"items": items})
 }

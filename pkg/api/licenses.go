@@ -13,7 +13,7 @@ import (
 
 type LicenseHandler struct {
 	Repo  license.Repository
-	Audit *audit.Stream
+	Audit audit.Store
 }
 
 func (h LicenseHandler) List(w http.ResponseWriter, r *http.Request) {
@@ -59,7 +59,7 @@ func (h LicenseHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if h.Audit != nil {
-		h.Audit.Append(audit.Event{
+		_ = h.Audit.Append(r.Context(), audit.Event{
 			Type:      "license.created",
 			ActorSub:  principal.Sub,
 			ActorRole: principal.Role,
