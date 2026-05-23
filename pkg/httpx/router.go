@@ -29,6 +29,20 @@ func NewMux() *http.ServeMux {
 			http.NotFound(w, r)
 		}
 	})
+	mux.HandleFunc("/v1/policy/compliance", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			http.NotFound(w, r)
+			return
+		}
+		licenses.CompliancePolicy(w, r)
+	})
+	mux.HandleFunc("/v1/policy/threat-model", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			http.NotFound(w, r)
+			return
+		}
+		licenses.ThreatModelPolicy(w, r)
+	})
 	return mux
 }
 
