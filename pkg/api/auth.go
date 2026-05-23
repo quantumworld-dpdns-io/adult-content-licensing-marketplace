@@ -2,6 +2,7 @@ package api
 
 import (
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/quantumworld-dpdns-io/adult-content-licensing-marketplace/internal/auth"
@@ -30,7 +31,7 @@ func DevToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	secret := r.Header.Get("X-Auth-Secret")
+	secret := os.Getenv("AUTH_SECRET")
 	if secret == "" {
 		secret = "dev-secret"
 	}
