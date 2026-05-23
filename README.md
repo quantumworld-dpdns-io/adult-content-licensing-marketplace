@@ -23,6 +23,13 @@ make test
 make run
 ```
 
+## Storage Backends
+
+- `LICENSE_STORE_BACKEND=memory` (default)
+- `LICENSE_STORE_BACKEND=postgres` with `DATABASE_URL`
+
+Note: Postgres backend requires a registered SQL driver in the build.
+
 ## Auth (Current)
 
 Protected endpoints accept:
