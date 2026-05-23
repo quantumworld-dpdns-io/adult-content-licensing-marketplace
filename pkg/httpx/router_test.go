@@ -332,7 +332,6 @@ func TestLicenseUpdateByID(t *testing.T) {
 	}
 }
 
-
 func TestLicenseUpdateVersionConflict(t *testing.T) {
 	mux := NewMux(license.NewMemoryRepository(), audit.NewMemoryStore())
 	createBody := []byte(`{"id":"lic_c1","creator_id":"u_1","title":"Before","currency":"USDC"}`)
@@ -340,11 +339,15 @@ func TestLicenseUpdateVersionConflict(t *testing.T) {
 	createReq.Header.Set("X-Role", "admin")
 	createRR := httptest.NewRecorder()
 	mux.ServeHTTP(createRR, createReq)
-	if createRR.Code != http.StatusCreated { t.Fatalf("create failed: %d", createRR.Code) }
+	if createRR.Code != http.StatusCreated {
+		t.Fatalf("create failed: %d", createRR.Code)
+	}
 	updBody := []byte(`{"creator_id":"u_1","title":"After","currency":"ETH","version":999}`)
 	updReq := httptest.NewRequest(http.MethodPut, "/v1/licenses/lic_c1", bytes.NewReader(updBody))
 	updReq.Header.Set("X-Role", "admin")
 	updRR := httptest.NewRecorder()
 	mux.ServeHTTP(updRR, updReq)
-	if updRR.Code != http.StatusConflict { t.Fatalf("expected 409, got %d", updRR.Code) }
+	if updRR.Code != http.StatusConflict {
+		t.Fatalf("expected 409, got %d", updRR.Code)
+	}
 }

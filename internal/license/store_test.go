@@ -31,7 +31,6 @@ func TestMemoryRepositoryCreateGetUpdate(t *testing.T) {
 	}
 }
 
-
 func TestMemoryRepositoryUpdateConflict(t *testing.T) {
 	t.Parallel()
 	s := NewMemoryRepository()

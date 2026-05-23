@@ -63,3 +63,6 @@ OpenAPI: `api/openapi.yaml`
 
 - k6 script: `tests/load/k6_smoke.js`
 - runner: `scripts/load/run_k6_smoke.sh`
+
+
+Note: `PUT /v1/licenses/{id}` requires `version` for optimistic concurrency; stale version returns `409`.

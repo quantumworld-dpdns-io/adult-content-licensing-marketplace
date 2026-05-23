@@ -9,7 +9,6 @@ import (
 	"strings"
 )
 
-
 type Repository interface {
 	Create(ctx context.Context, l License) (License, error)
 	List(ctx context.Context) ([]License, error)

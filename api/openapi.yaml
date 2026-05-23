@@ -74,6 +74,8 @@ paths:
           description: License
         '404':
           description: Not found
+        '409':
+          description: Version conflict
     put:
       operationId: updateLicenseById
       security: [{ bearerAuth: [] }]
