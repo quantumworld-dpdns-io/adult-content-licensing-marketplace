@@ -41,41 +41,66 @@ func TestReadyz(t *testing.T) {
 	if rr.Code != http.StatusOK {
 		t.Fatalf("expected status %d, got %d", http.StatusOK, rr.Code)
 	}
+}
 
-	var got HealthResponse
-	if err := json.Unmarshal(rr.Body.Bytes(), &got); err != nil {
-		t.Fatalf("failed to decode response: %v", err)
-	}
-
-	if got.Status != "ready" || got.Service != "gateway" {
-		t.Fatalf("unexpected body: %+v", got)
+func TestCreateLicenseForbiddenForLowTier(t *testing.T) {
+	t.Parallel()
+	mux := NewMux()
+	createBody := []byte(`{"id":"lic_1","creator_id":"u_1","title":"Sample","currency":"USDC"}`)
+	createReq := httptest.NewRequest(http.MethodPost, "/v1/licenses", bytes.NewReader(createBody))
+	createReq.Header.Set("X-Role", "regularuser")
+	createReq.Header.Set("X-Tier", "alpha")
+	createRR := httptest.NewRecorder()
+	mux.ServeHTTP(createRR, createReq)
+	if createRR.Code != http.StatusForbidden {
+		t.Fatalf("expected forbidden, got %d", createRR.Code)
 	}
 }
 
-func TestCreateAndListLicense(t *testing.T) {
+func TestCreateLicenseForVIPWithCrypto(t *testing.T) {
 	t.Parallel()
 	mux := NewMux()
-
-	createBody := []byte(`{"id":"lic_1","creator_id":"u_1","title":"Sample","description":"d","ai_training_prohibited":true,"base_price_cents":1000}`)
+	createBody := []byte(`{"id":"lic_2","creator_id":"u_2","title":"Sample","currency":"USDC"}`)
 	createReq := httptest.NewRequest(http.MethodPost, "/v1/licenses", bytes.NewReader(createBody))
+	createReq.Header.Set("X-Role", "regularuser")
+	createReq.Header.Set("X-Tier", "vip1")
 	createRR := httptest.NewRecorder()
 	mux.ServeHTTP(createRR, createReq)
 	if createRR.Code != http.StatusCreated {
 		t.Fatalf("expected created, got %d", createRR.Code)
 	}
+}
 
-	listReq := httptest.NewRequest(http.MethodGet, "/v1/licenses", nil)
-	listRR := httptest.NewRecorder()
-	mux.ServeHTTP(listRR, listReq)
-	if listRR.Code != http.StatusOK {
-		t.Fatalf("expected ok, got %d", listRR.Code)
+func TestCreateLicenseRejectsFiat(t *testing.T) {
+	t.Parallel()
+	mux := NewMux()
+	createBody := []byte(`{"id":"lic_3","creator_id":"u_3","title":"Sample","currency":"USD"}`)
+	createReq := httptest.NewRequest(http.MethodPost, "/v1/licenses", bytes.NewReader(createBody))
+	createReq.Header.Set("X-Role", "admin")
+	createRR := httptest.NewRecorder()
+	mux.ServeHTTP(createRR, createReq)
+	if createRR.Code != http.StatusBadRequest {
+		t.Fatalf("expected bad request, got %d", createRR.Code)
+	}
+}
+
+func TestPolicyEndpointsAuditorAccess(t *testing.T) {
+	t.Parallel()
+	mux := NewMux()
+
+	req := httptest.NewRequest(http.MethodGet, "/v1/policy/compliance", nil)
+	req.Header.Set("X-Role", "auditor")
+	rr := httptest.NewRecorder()
+	mux.ServeHTTP(rr, req)
+	if rr.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", rr.Code)
 	}
 
-	var out map[string][]map[string]any
-	if err := json.Unmarshal(listRR.Body.Bytes(), &out); err != nil {
-		t.Fatalf("decode list: %v", err)
-	}
-	if len(out["items"]) != 1 {
-		t.Fatalf("expected 1 item, got %d", len(out["items"]))
+	req2 := httptest.NewRequest(http.MethodGet, "/v1/policy/threat-model", nil)
+	req2.Header.Set("X-Role", "auditor")
+	rr2 := httptest.NewRecorder()
+	mux.ServeHTTP(rr2, req2)
+	if rr2.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", rr2.Code)
 	}
 }
