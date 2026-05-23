@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/quantumworld-dpdns-io/adult-content-licensing-marketplace/internal/audit"
 	"github.com/quantumworld-dpdns-io/adult-content-licensing-marketplace/internal/license"
 	"github.com/quantumworld-dpdns-io/adult-content-licensing-marketplace/pkg/api"
 )
@@ -15,7 +16,8 @@ type HealthResponse struct {
 
 func NewMux(repo license.Repository) *http.ServeMux {
 	mux := http.NewServeMux()
-	licenses := api.LicenseHandler{Repo: repo}
+	stream := audit.NewStream()
+	licenses := api.LicenseHandler{Repo: repo, Audit: stream}
 	mux.HandleFunc("/healthz", healthzHandler)
 	mux.HandleFunc("/readyz", readyzHandler)
 	mux.HandleFunc("/v1/auth/dev-token", api.DevToken)
@@ -28,6 +30,13 @@ func NewMux(repo license.Repository) *http.ServeMux {
 		default:
 			http.NotFound(w, r)
 		}
+	})
+	mux.HandleFunc("/v1/audit/events", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			http.NotFound(w, r)
+			return
+		}
+		licenses.ListAuditEvents(w, r)
 	})
 	mux.HandleFunc("/v1/policy/compliance", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
