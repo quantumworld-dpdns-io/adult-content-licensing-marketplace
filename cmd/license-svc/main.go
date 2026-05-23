@@ -21,8 +21,12 @@ func main() {
 	if err != nil {
 		log.Fatalf("repository init failed: %v", err)
 	}
+	auditStore, err := audit.NewStore(cfg.LicenseStoreBackend, cfg.DatabaseURL)
+	if err != nil {
+		log.Fatalf("audit store init failed: %v", err)
+	}
 
-	h := api.LicenseHandler{Repo: repo, Audit: audit.NewStream()}
+	h := api.LicenseHandler{Repo: repo, Audit: auditStore}
 	mux := http.NewServeMux()
 	mux.HandleFunc("/v1/auth/dev-token", api.DevToken)
 	mux.HandleFunc("/v1/licenses", func(w http.ResponseWriter, r *http.Request) {

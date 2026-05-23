@@ -11,6 +11,7 @@ import (
 
 	_ "github.com/lib/pq"
 
+	"github.com/quantumworld-dpdns-io/adult-content-licensing-marketplace/internal/audit"
 	"github.com/quantumworld-dpdns-io/adult-content-licensing-marketplace/internal/config"
 	"github.com/quantumworld-dpdns-io/adult-content-licensing-marketplace/internal/license"
 	"github.com/quantumworld-dpdns-io/adult-content-licensing-marketplace/pkg/httpx"
@@ -24,8 +25,12 @@ func main() {
 	if err != nil {
 		log.Fatalf("repository init failed: %v", err)
 	}
+	auditStore, err := audit.NewStore(cfg.LicenseStoreBackend, cfg.DatabaseURL)
+	if err != nil {
+		log.Fatalf("audit store init failed: %v", err)
+	}
 
-	mux := httpx.NewMux(repo)
+	mux := httpx.NewMux(repo, auditStore)
 
 	srv := &http.Server{
 		Addr:              ":" + cfg.Port,

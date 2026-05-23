@@ -1,6 +1,7 @@
 package httpx
 
 import (
+	"github.com/quantumworld-dpdns-io/adult-content-licensing-marketplace/internal/audit"
 	"github.com/quantumworld-dpdns-io/adult-content-licensing-marketplace/internal/license"
 
 	"bytes"
@@ -12,7 +13,7 @@ import (
 
 func TestHealthz(t *testing.T) {
 	t.Parallel()
-	mux := NewMux(license.NewMemoryRepository())
+	mux := NewMux(license.NewMemoryRepository(), audit.NewMemoryStore())
 	req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
 	rr := httptest.NewRecorder()
 
@@ -34,7 +35,7 @@ func TestHealthz(t *testing.T) {
 
 func TestReadyz(t *testing.T) {
 	t.Parallel()
-	mux := NewMux(license.NewMemoryRepository())
+	mux := NewMux(license.NewMemoryRepository(), audit.NewMemoryStore())
 	req := httptest.NewRequest(http.MethodGet, "/readyz", nil)
 	rr := httptest.NewRecorder()
 
@@ -47,7 +48,7 @@ func TestReadyz(t *testing.T) {
 
 func TestCreateLicenseForbiddenForLowTier(t *testing.T) {
 	t.Parallel()
-	mux := NewMux(license.NewMemoryRepository())
+	mux := NewMux(license.NewMemoryRepository(), audit.NewMemoryStore())
 	createBody := []byte(`{"id":"lic_1","creator_id":"u_1","title":"Sample","currency":"USDC"}`)
 	createReq := httptest.NewRequest(http.MethodPost, "/v1/licenses", bytes.NewReader(createBody))
 	createReq.Header.Set("X-Role", "regularuser")
@@ -61,7 +62,7 @@ func TestCreateLicenseForbiddenForLowTier(t *testing.T) {
 
 func TestCreateLicenseForVIPWithCrypto(t *testing.T) {
 	t.Parallel()
-	mux := NewMux(license.NewMemoryRepository())
+	mux := NewMux(license.NewMemoryRepository(), audit.NewMemoryStore())
 	createBody := []byte(`{"id":"lic_2","creator_id":"u_2","title":"Sample","currency":"USDC"}`)
 	createReq := httptest.NewRequest(http.MethodPost, "/v1/licenses", bytes.NewReader(createBody))
 	createReq.Header.Set("X-Role", "regularuser")
@@ -75,7 +76,7 @@ func TestCreateLicenseForVIPWithCrypto(t *testing.T) {
 
 func TestCreateLicenseRejectsFiat(t *testing.T) {
 	t.Parallel()
-	mux := NewMux(license.NewMemoryRepository())
+	mux := NewMux(license.NewMemoryRepository(), audit.NewMemoryStore())
 	createBody := []byte(`{"id":"lic_3","creator_id":"u_3","title":"Sample","currency":"USD"}`)
 	createReq := httptest.NewRequest(http.MethodPost, "/v1/licenses", bytes.NewReader(createBody))
 	createReq.Header.Set("X-Role", "admin")
@@ -88,7 +89,7 @@ func TestCreateLicenseRejectsFiat(t *testing.T) {
 
 func TestPolicyEndpointsAuditorAccess(t *testing.T) {
 	t.Parallel()
-	mux := NewMux(license.NewMemoryRepository())
+	mux := NewMux(license.NewMemoryRepository(), audit.NewMemoryStore())
 
 	req := httptest.NewRequest(http.MethodGet, "/v1/policy/compliance", nil)
 	req.Header.Set("X-Role", "auditor")
@@ -108,7 +109,7 @@ func TestPolicyEndpointsAuditorAccess(t *testing.T) {
 }
 
 func TestDevTokenAndBearerAccess(t *testing.T) {
-	mux := NewMux(license.NewMemoryRepository())
+	mux := NewMux(license.NewMemoryRepository(), audit.NewMemoryStore())
 
 	t.Setenv("AUTH_SECRET", "local-secret")
 	mintReq := httptest.NewRequest(http.MethodPost, "/v1/auth/dev-token?role=regularuser&tier=vip1&sub=user-9", nil)
@@ -138,7 +139,7 @@ func TestDevTokenAndBearerAccess(t *testing.T) {
 }
 
 func TestAuditEventsEndpoint(t *testing.T) {
-	mux := NewMux(license.NewMemoryRepository())
+	mux := NewMux(license.NewMemoryRepository(), audit.NewMemoryStore())
 
 	createBody := []byte(`{"id":"lic_aud_1","creator_id":"u_20","title":"Audit","currency":"USDC"}`)
 	createReq := httptest.NewRequest(http.MethodPost, "/v1/licenses", bytes.NewReader(createBody))
@@ -160,7 +161,7 @@ func TestAuditEventsEndpoint(t *testing.T) {
 }
 
 func TestRequestIDHeaderIsSet(t *testing.T) {
-	mux := NewMux(license.NewMemoryRepository())
+	mux := NewMux(license.NewMemoryRepository(), audit.NewMemoryStore())
 	req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
 	rr := httptest.NewRecorder()
 	mux.ServeHTTP(rr, req)
@@ -170,7 +171,7 @@ func TestRequestIDHeaderIsSet(t *testing.T) {
 }
 
 func TestMetricsEndpointAuditorAccess(t *testing.T) {
-	mux := NewMux(license.NewMemoryRepository())
+	mux := NewMux(license.NewMemoryRepository(), audit.NewMemoryStore())
 
 	seed := httptest.NewRequest(http.MethodGet, "/healthz", nil)
 	seedRR := httptest.NewRecorder()
