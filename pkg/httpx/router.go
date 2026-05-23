@@ -13,10 +13,9 @@ type HealthResponse struct {
 	Service string `json:"service"`
 }
 
-func NewMux() *http.ServeMux {
+func NewMux(repo license.Repository) *http.ServeMux {
 	mux := http.NewServeMux()
-	store := license.NewStore()
-	licenses := api.LicenseHandler{Store: store}
+	licenses := api.LicenseHandler{Repo: repo}
 	mux.HandleFunc("/healthz", healthzHandler)
 	mux.HandleFunc("/readyz", readyzHandler)
 	mux.HandleFunc("/v1/auth/dev-token", api.DevToken)

@@ -11,7 +11,7 @@ import (
 )
 
 type LicenseHandler struct {
-	Store *license.Store
+	Repo license.Repository
 }
 
 func (h LicenseHandler) List(w http.ResponseWriter, r *http.Request) {
@@ -20,7 +20,12 @@ func (h LicenseHandler) List(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"items": h.Store.List()})
+	items, err := h.Repo.List(r.Context())
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "list failed"})
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"items": items})
 }
 
 func (h LicenseHandler) Create(w http.ResponseWriter, r *http.Request) {
@@ -46,7 +51,11 @@ func (h LicenseHandler) Create(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 		return
 	}
-	created := h.Store.Create(in)
+	created, err := h.Repo.Create(r.Context(), in)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "create failed"})
+		return
+	}
 	writeJSON(w, http.StatusCreated, created)
 }
 
