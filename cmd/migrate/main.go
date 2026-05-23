@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"log"
 	"os"
@@ -33,14 +34,10 @@ func main() {
 }
 
 func driverRegistered(name string) bool {
-	for _, d := range sqlDrivers() {
+	for _, d := range sql.Drivers() {
 		if d == name {
 			return true
 		}
 	}
 	return false
-}
-
-func sqlDrivers() []string {
-	return []string{}
 }
